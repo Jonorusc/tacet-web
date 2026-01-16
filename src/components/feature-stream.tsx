@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, useInView } from "framer-motion";
 
 const features = [
     {
@@ -23,6 +23,35 @@ const features = [
         visual: "🌊",
     },
 ];
+
+function FeatureItem({ feature }: { feature: typeof features[0] }) {
+    const ref = useRef(null);
+    const isInView = useInView(ref, {
+        margin: "0px -50% 0px -50%" // Trigger when element crosses the vertical center line
+    });
+
+    return (
+        <div
+            ref={ref}
+            className="group relative flex h-[60vh] w-[80vw] shrink-0 flex-col justify-between border-l border-white/10 p-12 transition-colors hover:border-white/30 md:w-[35vw]"
+        >
+            <motion.span
+                className={`text-8xl transition-all duration-500 ${isInView
+                    ? "scale-110 grayscale-0 opacity-100"
+                    : "opacity-20 grayscale group-hover:scale-110 group-hover:grayscale-0 group-hover:opacity-100"
+                    }`}
+            >
+                {feature.visual}
+            </motion.span>
+            <div>
+                <h3 className="font-display text-4xl font-semibold text-white/90">
+                    {feature.title}
+                </h3>
+                <p className="mt-4 text-lg text-white/50">{feature.desc}</p>
+            </div>
+        </div>
+    );
+}
 
 export function FeatureStream() {
     const targetRef = useRef<HTMLDivElement>(null);
@@ -48,20 +77,7 @@ export function FeatureStream() {
                     </div>
 
                     {features.map((feature) => (
-                        <div
-                            key={feature.id}
-                            className="group relative flex h-[60vh] w-[80vw] shrink-0 flex-col justify-between border-l border-white/10 p-12 transition-colors hover:border-white/30 md:w-[35vw]"
-                        >
-                            <span className="text-8xl opacity-20 grayscale transition-all duration-500 group-hover:scale-110 group-hover:grayscale-0 group-hover:opacity-100">
-                                {feature.visual}
-                            </span>
-                            <div>
-                                <h3 className="font-display text-4xl font-semibold text-white/90">
-                                    {feature.title}
-                                </h3>
-                                <p className="mt-4 text-lg text-white/50">{feature.desc}</p>
-                            </div>
-                        </div>
+                        <FeatureItem key={feature.id} feature={feature} />
                     ))}
                 </motion.div>
             </div>
