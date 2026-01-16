@@ -1,12 +1,14 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
 import { motion } from "framer-motion";
-import { Check, Cpu, VolumeX, Globe } from "lucide-react";
+import { Check, Cpu, VolumeX, Globe, Loader2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-type Language = "en" | "pt";
-type Billing = "monthly" | "yearly";
+export type Language = "en" | "pt";
+export type Billing = "monthly" | "yearly";
 
 const CONTENT = {
     en: {
@@ -17,6 +19,7 @@ const CONTENT = {
         save: "Save 10%",
         tiers: [
             {
+                id: "null",
                 name: "TACET NULL",
                 price: { monthly: "$0", yearly: "$0" },
                 period: "forever",
@@ -28,8 +31,11 @@ const CONTENT = {
                     "Process Blocking",
                 ],
                 cta: "Download Beta",
+                ctaLoggedIn: "Launch App",
+                href: "/launch",
             },
             {
+                id: "core",
                 name: "TACET CORE",
                 price: { monthly: "$5", yearly: "$54" },
                 period: { monthly: "/ mo", yearly: "/ year" },
@@ -42,6 +48,8 @@ const CONTENT = {
                     "Focus Analytics",
                 ],
                 cta: "Create Account",
+                ctaLoggedIn: "Upgrade to Core",
+                href: "/signup", // Placeholder for Stripe
             },
         ],
     },
@@ -53,6 +61,7 @@ const CONTENT = {
         save: "Economize 10%",
         tiers: [
             {
+                id: "null",
                 name: "TACET NULL",
                 price: { monthly: "R$0", yearly: "R$0" },
                 period: "sempre",
@@ -64,8 +73,11 @@ const CONTENT = {
                     "Bloqueio de Processos",
                 ],
                 cta: "Baixar Beta",
+                ctaLoggedIn: "Abrir App",
+                href: "/launch",
             },
             {
+                id: "core",
                 name: "TACET CORE",
                 price: { monthly: "R$30", yearly: "R$320" },
                 period: { monthly: "/ mês", yearly: "/ ano" },
@@ -78,6 +90,8 @@ const CONTENT = {
                     "Analytics de Foco",
                 ],
                 cta: "Criar Conta",
+                ctaLoggedIn: "Assinar Core",
+                href: "/signup",
             },
         ],
     },
@@ -86,10 +100,41 @@ const CONTENT = {
 const ICONS = [VolumeX, Cpu];
 
 export function Pricing() {
+    const { isSignedIn, isLoaded } = useUser();
     const [lang, setLang] = useState<Language>("en");
     const [billing, setBilling] = useState<Billing>("yearly");
+    const [processing, setProcessing] = useState<string | null>(null);
+    const router = useRouter();
 
     const t = CONTENT[lang];
+
+    const handleAction = (tierId: string, href: string) => {
+        if (!isLoaded) return;
+
+        // Logic for Paid Tier (Core)
+        if (tierId === 'core') {
+            if (isSignedIn) {
+                setProcessing(tierId);
+                // TODO: Replace with real Stripe Checkout creation
+                setTimeout(() => {
+                    alert("Redirecting to Stripe Checkout...");
+                    setProcessing(null);
+                }, 1000);
+            } else {
+                router.push('/signup');
+            }
+            return;
+        }
+
+        // Logic for Free Tier (Null)
+        if (tierId === 'null') {
+            if (isSignedIn) {
+                router.push('/launch');
+            } else {
+                router.push('/signup');
+            }
+        }
+    };
 
     return (
         <section className="relative py-32 px-6">
@@ -218,16 +263,20 @@ export function Pricing() {
                                 </ul>
 
                                 {/* CTA */}
-                                <Link href="/signup" className="w-full">
-                                    <button
-                                        className={`w-full py-4 rounded font-mono text-xs uppercase tracking-widest transition-all duration-300 ${isCore
-                                            ? "bg-signal-allow text-void hover:bg-signal-allow/90 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-                                            : "border border-starlight/20 text-starlight hover:bg-starlight hover:text-void"
-                                            }`}
-                                    >
-                                        {tier.cta}
-                                    </button>
-                                </Link>
+                                <button
+                                    onClick={() => handleAction(tier.id, tier.href)}
+                                    disabled={processing === tier.id}
+                                    className={`w-full py-4 rounded font-mono text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${isCore
+                                        ? "bg-signal-allow text-void hover:bg-signal-allow/90 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                                        : "border border-starlight/20 text-starlight hover:bg-starlight hover:text-void"
+                                        }`}
+                                >
+                                    {processing === tier.id ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        isSignedIn && isLoaded ? tier.ctaLoggedIn : tier.cta
+                                    )}
+                                </button>
                             </div>
                         );
                     })}
